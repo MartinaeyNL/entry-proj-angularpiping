@@ -3,10 +3,12 @@ import { NgModule } from '@angular/core';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
+import { AppStopwatchComponent } from './app-stopwatch/app-stopwatch.component';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    AppStopwatchComponent
   ],
   imports: [
     BrowserModule,
