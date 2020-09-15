@@ -6,6 +6,7 @@ import {
   switchMap, tap,
 } from 'rxjs/operators';
 import {fromEvent, interval, merge, NEVER, Observable} from 'rxjs';
+import {StopwatchService} from '../services/stopwatch.service';
 
 @Component({
   selector: 'app-app-stopwatch',
@@ -17,51 +18,30 @@ export class AppStopwatchComponent implements OnInit {
 
   // Variables
   stopwatchDisplay: string;
-  events$ = null;
+  clickObs$ = null;
 
   // Constructor & onInit
-  constructor() {}
+  constructor(private stopwatchService: StopwatchService) {}
 
   ngOnInit(): void {
-    this.events$ = merge(
-      this.getClickTrigger('pauseBtn', { isCounting: false }),
-      this.getClickTrigger('resumeBtn', { isCounting: true })
+    this.clickObs$ = merge(
+      this.getClickObservable('pauseBtn', { isCounting: false }),
+      this.getClickObservable('resumeBtn', { isCounting: true }),
+      this.getClickObservable('resetBtn', { value: 0 })
     );
   }
 
   // Function to create trigger from parameters
-  getClickTrigger(elemId: string, obj: {}): Observable<any> {
+  getClickObservable(elemId: string, obj: {}): Observable<any> {
     return fromEvent(document.getElementById(elemId), 'click').pipe(mapTo(obj));
   }
 
   // Main function to start the stopwatch
   startStopwatch(): void {
-    this.events$.pipe(
-      // First value emitted
-      startWith({
-        isCounting: true,
-        speed: 100,
-        value: 0,
-        increase: 0.1
-      }),
-      // Scan to accumulate/merge objects
-      scan((state, curr) => Object.assign({}, state, curr), []),
-      tap((state: State) => console.log(state)),
-      switchMap((state: State) => {
-        return state.isCounting
-          ? interval(state.speed).pipe(
-            map(() => {
-              state.value += state.increase;
-              return state;
-            }))
-          : NEVER;
-      })
-    )
-      // Start the process and display data
-      .subscribe(timerData => { this.stopwatchDisplay = timerData.value.toFixed(2); },
-        error => { console.log(error); },
-        () => { console.log('Completed!'); });
-
+    this.stopwatchService.startStopwatch(this.clickObs$).subscribe(
+      timerData => { this.stopwatchDisplay = timerData.value.toFixed(2); },
+      error => { console.log(error); },
+      () => { console.log('Completed!'); }
+    );
   }
-
 }
