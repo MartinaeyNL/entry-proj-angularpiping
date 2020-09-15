@@ -6,6 +6,7 @@ import {
   switchMap, tap,
 } from 'rxjs/operators';
 import {fromEvent, interval, merge, NEVER, Observable} from 'rxjs';
+import {StopwatchService} from '../services/stopwatch.service';
 
 @Component({
   selector: 'app-app-stopwatch',
@@ -16,60 +17,31 @@ import {fromEvent, interval, merge, NEVER, Observable} from 'rxjs';
 export class AppStopwatchComponent implements OnInit {
 
   // Variables
-  stopwatchTime: number;
-  events$ = null;
+  stopwatchDisplay: string;
+  clickObs$ = null;
 
   // Constructor & onInit
-  constructor() {}
-  // Init observables (waiting for clicks)
+  constructor(private stopwatchService: StopwatchService) {}
 
   ngOnInit(): void {
-    this.events$ = merge(
-      this.getClickTrigger('pauseBtn', { isCounting: false }),
-      this.getClickTrigger('resumeBtn', { isCounting: true })
+    this.clickObs$ = merge(
+      this.getClickObservable('pauseBtn', { isCounting: false }),
+      this.getClickObservable('resumeBtn', { isCounting: true }),
+      this.getClickObservable('resetBtn', { value: 0 })
     );
   }
-  getClickTrigger(elemId: string, obj: {}): Observable<any> {
+
+  // Function to create trigger from parameters
+  getClickObservable(elemId: string, obj: {}): Observable<any> {
     return fromEvent(document.getElementById(elemId), 'click').pipe(mapTo(obj));
   }
 
-  // Methods
+  // Main function to start the stopwatch
   startStopwatch(): void {
-    console.log('Start!');
-    this.events$.pipe(
-
-      // First value emitted
-      startWith({
-        isCounting: true,
-        speed: 1000,
-        value: 0,
-        increase: 1
-      }),
-      scan((state, curr) => Object.assign({}, state, curr), []),
-      tap((state: State) => console.log(state)),
-      switchMap((state: State) => {
-        return state.isCounting
-          ? interval(state.speed).pipe(
-            map(() => {
-              state.value += state.increase;
-              return state;
-            })
-          )
-          : NEVER;
-      })
-    )
-      // Start the process and display data
-      .subscribe(timerData => {
-        this.stopwatchTime = timerData.value;
-        },
-        error => {
-          console.log('Error:');
-          console.log(error);
-        },
-        () => {
-          console.log('Completed!');
-        });
-
+    this.stopwatchService.startStopwatch(this.clickObs$).subscribe(
+      timerData => { this.stopwatchDisplay = timerData.value.toFixed(2); },
+      error => { console.log(error); },
+      () => { console.log('Completed!'); }
+    );
   }
-
 }
