@@ -1,49 +1,70 @@
 import {Component, OnInit} from '@angular/core';
-import {Time} from '@angular/common';
-import {StopwatchService} from '../services/stopwatch.service';
-import {catchError, first, map} from 'rxjs/operators';
-import {throwError} from 'rxjs';
+import {State} from '../models/stopwatchState';
+import {
+  map, mapTo,
+  scan, startWith,
+  switchMap, tap,
+} from 'rxjs/operators';
+import {fromEvent, interval, merge, NEVER, Observable} from 'rxjs';
 
 @Component({
   selector: 'app-app-stopwatch',
   templateUrl: './app-stopwatch.component.html',
   styleUrls: ['./app-stopwatch.component.scss']
 })
+
 export class AppStopwatchComponent implements OnInit {
 
   // Variables
-  stopwatchTime: Time;
+  stopwatchTime: number;
+  events$ = null;
 
   // Constructor & onInit
-  constructor(private stopwatchService: StopwatchService) {
-  }
+  constructor() {}
+  // Init observables (waiting for clicks)
 
   ngOnInit(): void {
+    this.events$ = merge(
+      this.getClickTrigger('pauseBtn', { isCounting: false }),
+      this.getClickTrigger('resumeBtn', { isCounting: true })
+    );
+  }
+  getClickTrigger(elemId: string, obj: {}): Observable<any> {
+    return fromEvent(document.getElementById(elemId), 'click').pipe(mapTo(obj));
   }
 
   // Methods
   startStopwatch(): void {
     console.log('Start!');
-    this.stopwatchService.startStopwatch()
+    this.events$.pipe(
 
-      // Map and edit the data so it fits the front end
-      .pipe(map(data => {
-        console.log(data);
-        return data.toLocaleString() + 's';
+      // First value emitted
+      startWith({
+        isCounting: true,
+        speed: 1000,
+        value: 0,
+        increase: 1
       }),
-        // Catch errors if needed
-        catchError(err => {
-        return throwError(err);
-      }))
-
-
+      scan((state, curr) => Object.assign({}, state, curr), []),
+      tap((state: State) => console.log(state)),
+      switchMap((state: State) => {
+        return state.isCounting
+          ? interval(state.speed).pipe(
+            map(() => {
+              state.value += state.increase;
+              return state;
+            })
+          )
+          : NEVER;
+      })
+    )
       // Start the process and display data
-      .subscribe(subData => {
-        console.log(subData);
-        this.stopwatchTime = subData;
+      .subscribe(timerData => {
+        this.stopwatchTime = timerData.value;
         },
         error => {
-          console.log('Error!');
+          console.log('Error:');
+          console.log(error);
         },
         () => {
           console.log('Completed!');

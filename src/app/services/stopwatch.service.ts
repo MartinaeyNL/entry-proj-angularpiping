@@ -15,7 +15,7 @@ export class StopwatchService {
     this.stopwatchTime = this.stopwatchTimeSubject.asObservable();
   }
 
-  public startStopwatch(): any/*Observable<any>*/ {
+  public startStopwatch(): Observable<any> {
     return timer(0, 1000);
   }
 }
