@@ -16,12 +16,11 @@ import {fromEvent, interval, merge, NEVER, Observable} from 'rxjs';
 export class AppStopwatchComponent implements OnInit {
 
   // Variables
-  stopwatchTime: number;
+  stopwatchDisplay: string;
   events$ = null;
 
   // Constructor & onInit
   constructor() {}
-  // Init observables (waiting for clicks)
 
   ngOnInit(): void {
     this.events$ = merge(
@@ -29,22 +28,23 @@ export class AppStopwatchComponent implements OnInit {
       this.getClickTrigger('resumeBtn', { isCounting: true })
     );
   }
+
+  // Function to create trigger from parameters
   getClickTrigger(elemId: string, obj: {}): Observable<any> {
     return fromEvent(document.getElementById(elemId), 'click').pipe(mapTo(obj));
   }
 
-  // Methods
+  // Main function to start the stopwatch
   startStopwatch(): void {
-    console.log('Start!');
     this.events$.pipe(
-
       // First value emitted
       startWith({
         isCounting: true,
-        speed: 1000,
+        speed: 100,
         value: 0,
-        increase: 1
+        increase: 0.1
       }),
+      // Scan to accumulate/merge objects
       scan((state, curr) => Object.assign({}, state, curr), []),
       tap((state: State) => console.log(state)),
       switchMap((state: State) => {
@@ -53,22 +53,14 @@ export class AppStopwatchComponent implements OnInit {
             map(() => {
               state.value += state.increase;
               return state;
-            })
-          )
+            }))
           : NEVER;
       })
     )
       // Start the process and display data
-      .subscribe(timerData => {
-        this.stopwatchTime = timerData.value;
-        },
-        error => {
-          console.log('Error:');
-          console.log(error);
-        },
-        () => {
-          console.log('Completed!');
-        });
+      .subscribe(timerData => { this.stopwatchDisplay = timerData.value.toFixed(2); },
+        error => { console.log(error); },
+        () => { console.log('Completed!'); });
 
   }
 
